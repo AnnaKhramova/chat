@@ -73,13 +73,15 @@ public class Main {
 //        Settings.get().setPort(SETTINGS_FILE, 8080);
 //        System.out.println(Settings.get().getPort());
         try (ServerSocket serverSocket = new ServerSocket(Settings.get().getPort())) {
-            try (Socket clientSocket = serverSocket.accept();
-                 PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true);
-                 BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-            ) {
-                System.out.println("New connection accepted");
-                final String name = in.readLine();
-                out.println(String.format("Connection successfull"));
+            while (true) {
+                try (Socket clientSocket = serverSocket.accept();
+                     PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true);
+                     BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+                ) {
+                    String infoFromClient = in.readLine();
+                    System.out.printf("Новое подключение принято. Информация: %s, порт: %d%n", infoFromClient, clientSocket.getPort());
+                    out.println(clientSocket.getPort());
+                }
             }
         } catch (IOException e) {
             throw new RuntimeException(e);
