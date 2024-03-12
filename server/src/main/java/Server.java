@@ -15,7 +15,7 @@ import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 
-public class Main {
+public class Server {
 
     private static final String SETTINGS_FILE = "settings.xml";
 
@@ -68,22 +68,72 @@ public class Main {
     }
 
     public static void main(String[] args) {
-//        System.out.println(Settings.get().getPort());
-//        Settings.get().setPort(SETTINGS_FILE, 8080);
-//        System.out.println(Settings.get().getPort());
+        Settings.get().setPort(SETTINGS_FILE, 8080);
         try (ServerSocket serverSocket = new ServerSocket(Settings.get().getPort())) {
             while (true) {
                 try (Socket clientSocket = serverSocket.accept();
                      PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true);
                      BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
                 ) {
-                    System.out.println("Новое подключение принято.");
-                    final String infoFromClient = in.readLine();
-                    out.println(String.format(("Информация: %s, порт: %d%n"), infoFromClient, clientSocket.getPort()));
+                    final String clientName = in.readLine();
+                    log(clientName + " подключился. Порт: " + clientSocket.getPort() + "\n");
+                    while (true) {
+                        final String message = in.readLine();
+                        if ("exit".equals(message)) {
+                            log(clientName + " вышел из чата.\n");
+                            break;
+                        }
+                        log(message);
+                        System.out.println(message);
+                    }
                 }
             }
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    private static void log(String log) {
+        createDir("log");
+        if (createDir("log/server")) {
+            if (createFile("log/server/file.log")) {
+                try (FileWriter fileWriter = new FileWriter("log/server/file.log", true)) {
+                    fileWriter.write(log);
+                    fileWriter.flush();
+                } catch (IOException ex) {
+                    System.out.println("Ошибка: Не удалось записать лог");
+                }
+            }
+        }
+    }
+
+    public static boolean createDir(String dirPath) {
+        File dir = new File(dirPath);
+        if (!dir.exists()){
+            if (dir.mkdir()) {
+                return true;
+            } else {
+                System.out.println("Ошибка: Директория не создана");
+                return false;
+            }
+        } else {
+            return true;
+        }
+    }
+
+    public static boolean createFile(String fileName) {
+        File file = new File(fileName);
+        try {
+            if (!file.exists()) {
+                if (file.createNewFile()) {
+                    return true;
+                }
+            } else {
+                return true;
+            }
+        } catch (IOException ex) {
+            System.out.println("Ошибка: Не удалось создать файл логирования");
+        }
+        return false;
     }
 }

@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Scanner;
 
-public class Main {
+public class Client {
 
     private static String name = "Неизвестный";
 
@@ -64,23 +64,17 @@ public class Main {
                          BufferedReader reader = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
                     ) {
                         while (true) {
+                            writer.print(name);
+                            log(name + " подключился.\n");
                             System.out.print("\nВведите сообщение или \"/exit\" для выхода: ");
                             String comm = scanner.nextLine();
                             if ("/exit".equals(comm)) {
                                 break;
                             } else {
-                                String message = "[" + DateTimeFormatter.ofPattern("MM-dd-yy hh:mm").format(LocalDateTime.now()) + "] " + name + ": " + comm;
-                                writer.println(message);
-                                if (createFile("file.log")) {
-                                    try (FileWriter fileWriter = new FileWriter("file.log", true)) {
-                                        fileWriter.write(message);
-                                        writer.flush();
-                                    } catch (IOException ex) {
-                                        System.out.println(ex.getMessage());
-                                    }
-                                }
+                                String message = "[" + DateTimeFormatter.ofPattern("MM-dd-yy hh:mm").format(LocalDateTime.now()) + "] " + name + ": " + comm + "\n";
+                                writer.print(message);
+                                log(message);
                             }
-                            System.out.println(reader.readLine());
                         }
                     } catch (IOException e) {
                         throw new RuntimeException(e);
@@ -95,16 +89,46 @@ public class Main {
         }
     }
 
+    private static void log(String log) {
+        createDir("log");
+        if (createDir("log/client")) {
+            if (createFile("log/client/file.log")) {
+                try (FileWriter fileWriter = new FileWriter("log/client/file.log", true)) {
+                    fileWriter.write(log);
+                    fileWriter.flush();
+                } catch (IOException ex) {
+                    System.out.println("Ошибка: Не удалось записать лог");
+                }
+            }
+        }
+    }
+
+    public static boolean createDir(String dirPath) {
+        File dir = new File(dirPath);
+        if (!dir.exists()){
+            if (dir.mkdir()) {
+                return true;
+            } else {
+                System.out.println("Ошибка: Директория не создана");
+                return false;
+            }
+        } else {
+            return true;
+        }
+    }
+
     public static boolean createFile(String fileName) {
         File file = new File(fileName);
-        if (!file.exists()) {
-            try {
+        try {
+            if (!file.exists()) {
                 if (file.createNewFile()) {
                     return true;
                 }
-            } catch (IOException ex) {
-                System.out.println("Ошибка: Не удалось записать лог");
+            } else {
+                return true;
             }
+        } catch (IOException ex) {
+            System.out.println("Ошибка: Не удалось создать файл логирования");
         }
         return false;
     }
