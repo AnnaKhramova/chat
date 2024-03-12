@@ -7,7 +7,6 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.Transformer;
-import javax.xml.transform.TransformerConfigurationException;
 import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
@@ -78,9 +77,9 @@ public class Main {
                      PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true);
                      BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
                 ) {
-                    String infoFromClient = in.readLine();
-                    System.out.printf("Новое подключение принято. Информация: %s, порт: %d%n", infoFromClient, clientSocket.getPort());
-                    out.println(clientSocket.getPort());
+                    System.out.println("Новое подключение принято.");
+                    final String infoFromClient = in.readLine();
+                    out.println(String.format(("Информация: %s, порт: %d%n"), infoFromClient, clientSocket.getPort()));
                 }
             }
         } catch (IOException e) {
