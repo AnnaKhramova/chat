@@ -14,10 +14,16 @@ import javax.xml.transform.stream.StreamResult;
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class Server {
-
+    private static final Integer PORT = 8080;
+    final static Integer THREAD_COUNT = 10;
     private static final String SETTINGS_FILE = "settings.xml";
+    private static Map<Integer, PrintWriter> clients = new ConcurrentHashMap<>();
 
     public static class Settings {
         private static Settings instance = null;
@@ -68,28 +74,43 @@ public class Server {
     }
 
     public static void main(String[] args) {
-        Settings.get().setPort(SETTINGS_FILE, 8080);
-        try (ServerSocket serverSocket = new ServerSocket(Settings.get().getPort())) {
-            while (true) {
+        Settings.get().setPort(SETTINGS_FILE, PORT);
+        final ExecutorService threadPool = Executors.newFixedThreadPool(THREAD_COUNT);
+        try (final var serverSocket = new ServerSocket(PORT)) {
+            Runnable logic = () -> {
                 try (Socket clientSocket = serverSocket.accept();
                      PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true);
                      BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
                 ) {
-                    final String clientName = in.readLine();
-                    log(clientName + " подключился. Порт: " + clientSocket.getPort() + "\n");
-                    while (true) {
-                        final String message = in.readLine();
-                        if ("exit".equals(message)) {
-                            log(clientName + " вышел из чата.\n");
-                            break;
-                        }
-                        log(message);
-                        System.out.println(message);
-                    }
+                    clients.put(clientSocket.getPort(), out);
+                    processConnection(clientSocket, in, out);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
                 }
+            };
+            while (true) {
+                threadPool.submit(logic);
+                break;
             }
         } catch (IOException e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    private static void processConnection(Socket clientSocket, BufferedReader in, PrintWriter out) throws IOException {
+        final String clientName = in.readLine();
+        log(clientName + " подключился. Порт: " + clientSocket.getPort() + "\n");
+        while (true) {
+            final String message = in.readLine();
+            if ("exit".equals(message)) {
+                log(clientName + " вышел из чата.\n");
+                break;
+            }
+            for(var clientOut : clients.values()) {
+                clientOut.println(clientName + ": " + message);
+            }
+            log(message);
+            System.out.println(clientName + ": " + message);
         }
     }
 
